@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense AI — Personal Expense Assistant</title>
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --accent-gold: #f59e0b;
+            --accent-fire: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 720px;
+            height: 85vh;
+            max-height: 850px;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: appAppear 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes appAppear {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        header {
+            padding: 18px 24px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-icon {
+            font-size: 26px;
+            background: #e0e7ff;
+            padding: 10px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        header p {
+            margin: 2px 0 0;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        /* Gamification Header Stats */
+        .gamification-badges {
+            display: flex;
+            gap: 10px;
+        }
+
+        .badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .badge:hover {
+            transform: scale(1.08);
+        }
+
+        .badge-level {
+            background: #fef3c7;
+            color: #d97706;
+            border: 1px solid #fde68a;
+        }
+
+        .badge-streak {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+        }
+
+        #messages {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: #f8fafc;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            display: flex;
+            animation: messageSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes messageSlideIn {
+            from { opacity: 0; transform: translateY(12px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .bubble {
+            max-width: 80%;
+            padding: 14px 20px;
+            border-radius: 20px;
+            line-height: 1.5;
+            font-size: 14px;
+            white-space: pre-wrap;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            word-wrap: break-word;
+        }
+
+        .message.ai .bubble {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            border-top-left-radius: 4px;
+        }
+
+        .message.user .bubble {
+            background: var(--primary);
+            color: white;
+            border-top-right-radius: 4px;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+        }
+
+        .input-area {
+            padding: 16px 20px;
+            background: #ffffff;
+            border-top: 1px solid var(--border-color);
+        }
+
+        form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input {
+            flex: 1;
+            min-width: 0;
+            padding: 14px 18px;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            font-size: 14px;
+            outline: none;
+            background: #f8fafc;
+            transition: all 0.25s ease;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+        }
+
+        select {
+            padding: 0 10px;
+            height: 48px;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            background: #f1f5f9;
+            color: var(--text-main);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            outline: none;
+            transition: background 0.2s;
+        }
+
+        select:hover {
+            background: #e2e8f0;
+        }
+
+        .action-btn {
+            border: none;
+            border-radius: 14px;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            flex-shrink: 0;
+        }
+
+        .action-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        #mic-btn {
+            background: #f1f5f9;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+        }
+
+        #mic-btn.recording {
+            background: #fee2e2;
+            color: #dc2626;
+            border-color: #fca5a5;
+            animation: pulseRecord 1.2s infinite;
+        }
+
+        @keyframes pulseRecord {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+            70% { transform: scale(1.06); box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+        }
+
+        #speaker-btn {
+            background: #f1f5f9;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+        }
+
+        #speaker-btn.active {
+            background: #e0e7ff;
+            color: var(--primary);
+            border-color: #c7d2fe;
+        }
+
+        #send-button {
+            background: var(--primary);
+            color: white;
+            padding: 0 20px;
+            width: auto;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+        }
+
+        #send-button:hover:not(:disabled) {
+            background: var(--primary-hover);
+        }
+
+        button:disabled, select:disabled, input:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 650px) {
+            body { padding: 0; }
+            .app {
+                height: 100vh;
+                max-height: none;
+                border-radius: 0;
+                border: none;
+            }
+            .header-brand p { display: none; }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="app">
+    <header>
+        <div class="header-brand">
+            <div class="header-icon">💳</div>
+            <div>
+                <h1>Expense AI</h1>
+                <p>Personal Finance Assistant</p>
+            </div>
+        </div>
+        
+        <!-- Gamification Header Stats -->
+        <div class="gamification-badges">
+            <div class="badge badge-level" title="Your current level">
+                <span>⭐ Level</span>
+                <span id="user-level">1</span>
+            </div>
+            <div class="badge badge-streak" title="Daily consecutive streak">
+                <span>🔥</span>
+                <span id="user-streak">1</span>
+            </div>
+        </div>
+    </header>
+
+    <main id="messages">
+        <div class="message ai">
+            <div class="bubble">Hi! I’m your AI expense assistant. Log an expense or ask me for financial insights to earn points! 🚀</div>
+        </div>
+    </main>
+
+    <div class="input-area">
+        <form id="chat-form">
+            <input
+                id="message-input"
+                type="text"
+                placeholder="Type or click 🎤 to speak..."
+                autocomplete="off"
+                required
+            >
+            <button id="mic-btn" class="action-btn" type="button" title="Voice Input">🎤</button>
+            <button id="speaker-btn" class="action-btn" type="button" title="Text-to-Speech (Muted)">🔇</button>
+            <select id="voice-select" title="Choose Voice Accent">
+                <option value="female">Female Voice</option>
+                <option value="male">Male Voice</option>
+            </select>
+            <button id="send-button" class="action-btn" type="submit">Send</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById("chat-form");
+    const input = document.getElementById("message-input");
+    const sendButton = document.getElementById("send-button");
+    const micButton = document.getElementById("mic-btn");
+    const speakerButton = document.getElementById("speaker-btn");
+    const voiceSelect = document.getElementById("voice-select");
+    const messages = document.getElementById("messages");
+    const userLevelEl = document.getElementById("user-level");
+    const userStreakEl = document.getElementById("user-streak");
+
+    const USER_ID = 1;
+
+    function triggerConfetti() {
+        if (typeof confetti === 'function') {
+            confetti({
+                particleCount: 120,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        }
+    }
+
+    function addMessage(text, sender) {
+        const message = document.createElement("div");
+        message.className = `message ${sender}`;
+
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+        bubble.textContent = text;
+
+        message.appendChild(bubble);
+        messages.appendChild(message);
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    // --- Voice Recognition (Speech-to-Text) ---
+    let recognition;
+    let isRecording = false;
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        recognition.onresult = function(event) {
+            const transcript = event.results[0][0].transcript;
+            input.value = transcript;
+            stopRecordingState();
+        };
+
+        recognition.onerror = function(event) {
+            console.error("Speech recognition error", event.error);
+            stopRecordingState();
+        };
+
+        recognition.onend = function() {
+            stopRecordingState();
+        };
+    } else {
+        micButton.style.display = 'none';
+    }
+
+    function startRecordingState() {
+        isRecording = true;
+        micButton.classList.add("recording");
+        micButton.title = "Listening...";
+    }
+
+    function stopRecordingState() {
+        isRecording = false;
+        micButton.classList.remove("recording");
+        micButton.title = "Voice Input";
+        try { recognition.stop(); } catch(e) {}
+    }
+
+    micButton.addEventListener("click", () => {
+        if (!recognition) return;
+
+        if (isRecording) {
+            stopRecordingState();
+        } else {
+            startRecordingState();
+            try {
+                recognition.start();
+            } catch (err) {
+                console.error(err);
+                stopRecordingState();
+            }
+        }
+    });
+
+    // --- Text-to-Speech ---
+    let isAudioEnabled = false;
+    let systemVoices = [];
+
+    function loadVoices() {
+        if (!('speechSynthesis' in window)) return;
+        systemVoices = window.speechSynthesis.getVoices();
+    }
+
+    if ('speechSynthesis' in window) {
+        loadVoices();
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    speakerButton.addEventListener("click", () => {
+        isAudioEnabled = !isAudioEnabled;
+        if (isAudioEnabled) {
+            speakerButton.textContent = "🔊";
+            speakerButton.classList.add("active");
+            speakerButton.title = "Text-to-Speech (Enabled)";
+        } else {
+            speakerButton.textContent = "🔇";
+            speakerButton.classList.remove("active");
+            speakerButton.title = "Text-to-Speech (Muted)";
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        }
+    });
+
+    function getSelectedVoice() {
+        if (!systemVoices.length) loadVoices();
+        const preference = voiceSelect.value;
+        const englishVoices = systemVoices.filter(v => v.lang.startsWith('en'));
+        const voicesToSearch = englishVoices.length ? englishVoices : systemVoices;
+
+        let matchedVoice = voicesToSearch.find(v => {
+            const name = v.name.toLowerCase();
+            if (preference === 'female') {
+                return name.includes('female') || name.includes('zira') || name.includes('samantha') || name.includes('victoria') || name.includes('aria');
+            } else {
+                return name.includes('male') || name.includes('david') || name.includes('mark') || name.includes('george') || name.includes('james');
+            }
+        });
+
+        if (!matchedVoice && voicesToSearch.length > 0) {
+            matchedVoice = voicesToSearch[preference === 'female' ? 0 : Math.min(1, voicesToSearch.length - 1)];
+        }
+
+        return matchedVoice;
+    }
+
+    function speakText(text) {
+        if (!isAudioEnabled || !('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        const voice = getSelectedVoice();
+        if (voice) utterance.voice = voice;
+        utterance.rate = 1.0;
+        utterance.pitch = voiceSelect.value === 'female' ? 1.1 : 0.95;
+        
+        window.speechSynthesis.speak(utterance);
+    }
+
+    // --- Chat Form Submission ---
+    form.addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        if (isRecording) stopRecordingState();
+
+        const message = input.value.trim();
+        if (!message) return;
+
+        addMessage(message, "user");
+
+        input.value = "";
+        sendButton.disabled = true;
+        input.disabled = true;
+        micButton.disabled = true;
+
+        addMessage("Thinking...", "ai");
+        const thinkingBubble = messages.lastElementChild.querySelector(".bubble");
+
+        try {
+            const response = await fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    user_id: USER_ID,
+                    message: message
+                })
+            });
+
+            if (!response.ok) throw new Error("Server error");
+
+            const data = await response.json();
+            thinkingBubble.textContent = data.response;
+
+            // Gamification UI Updates
+            if (data.gamification) {
+                if (data.gamification.level !== undefined) {
+                    userLevelEl.textContent = data.gamification.level;
+                }
+                if (data.gamification.streak !== undefined) {
+                    userStreakEl.textContent = data.gamification.streak;
+                }
+                if (data.gamification.leveled_up) {
+                    triggerConfetti();
+                }
+            }
+
+            speakText(data.response);
+
+        } catch (error) {
+            thinkingBubble.textContent = "Sorry, I couldn't connect to the server.";
+            console.error(error);
+        } finally {
+            sendButton.disabled = false;
+            input.disabled = false;
+            micButton.disabled = false;
+            input.focus();
+        }
+    });
+</script>
+
+</body>
+</html>
